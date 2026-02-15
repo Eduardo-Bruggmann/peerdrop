@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { createPeer, signalPeer, removePeer } from '@/lib/webrtc'
+import { useEffect, useState } from 'react'
 import { socket } from '@/lib/socket'
+import Peer from 'simple-peer'
 
 export default function Room() {
   const { id } = useParams()
   const searchParams = useSearchParams()
   const user = searchParams.get('user')
-
   const router = useRouter()
 
   const [peers, setPeers] = useState<string[]>([])
@@ -20,7 +21,7 @@ export default function Room() {
   }, [user, router])
 
   useEffect(() => {
-    socket.connect()
+    if (!socket.connected) socket.connect()
 
     return () => {
       socket.disconnect()
@@ -40,14 +41,45 @@ export default function Room() {
       setPeers(prev => prev.filter(p => p !== peerId))
     }
 
-    socket.on('existing-peers', handleExistingPeers)
-    socket.on('peer-joined', handlePeerJoined)
-    socket.on('peer-left', handlePeerLeft)
+    function handleSocketExistingPeers(ids: string[]) {
+      handleExistingPeers(ids)
+
+      ids.forEach(id => {
+        if (!peers.includes(id)) createPeer(id, true)
+      })
+    }
+
+    function handleSocketPeerJoined(id: string) {
+      handlePeerJoined(id)
+
+      createPeer(id, false)
+    }
+
+    function handleSocketSignal({
+      from,
+      data,
+    }: {
+      from: string
+      data: Peer.SignalData
+    }) {
+      signalPeer(from, data)
+    }
+
+    function handleSocketPeerLeft(peerId: string) {
+      handlePeerLeft(peerId)
+      removePeer(peerId)
+    }
+
+    socket.on('existing-peers', handleSocketExistingPeers)
+    socket.on('peer-joined', handleSocketPeerJoined)
+    socket.on('peer-left', handleSocketPeerLeft)
+    socket.on('signal', handleSocketSignal)
 
     return () => {
-      socket.off('existing-peers', handleExistingPeers)
-      socket.off('peer-joined', handlePeerJoined)
-      socket.off('peer-left', handlePeerLeft)
+      socket.off('existing-peers', handleSocketExistingPeers)
+      socket.off('peer-joined', handleSocketPeerJoined)
+      socket.off('peer-left', handleSocketPeerLeft)
+      socket.off('signal', handleSocketSignal)
     }
   }, [])
 

@@ -15,8 +15,6 @@ const io = new Server(server, {
 })
 
 io.on('connection', socket => {
-  console.log('User connected:', socket.id)
-
   socket.on('join-room', ({ roomId }) => {
     socket.join(roomId)
 
@@ -37,7 +35,6 @@ io.on('connection', socket => {
 
   socket.on('disconnect', () => {
     socket.broadcast.emit('peer-left', socket.id)
-    console.log('User disconnected:', socket.id)
   })
 })
 
