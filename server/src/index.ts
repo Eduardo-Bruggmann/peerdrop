@@ -34,7 +34,11 @@ io.on('connection', socket => {
   })
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('peer-left', socket.id)
+    socket.rooms.forEach(roomId => {
+      if (roomId !== socket.id) {
+        socket.to(roomId).emit('peer-left', socket.id)
+      }
+    })
   })
 })
 

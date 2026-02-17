@@ -1,96 +1,88 @@
 'use client'
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { createPeer, signalPeer, removePeer } from '@/lib/webrtc'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import * as webrtc from '@/lib/webrtc'
 import { socket } from '@/lib/socket'
-import Peer from 'simple-peer'
+import type Peer from 'simple-peer'
+
+const { createPeer, signalPeer, removePeer, removeAllPeers, sendFile } = webrtc
 
 export default function Room() {
   const { id } = useParams()
-  const searchParams = useSearchParams()
-  const user = searchParams.get('user')
+  const user = useSearchParams().get('user')
   const router = useRouter()
 
   const [peers, setPeers] = useState<string[]>([])
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!user?.trim()) {
-      router.push('/')
-    }
+    if (!user?.trim()) router.push('/')
   }, [user, router])
 
   useEffect(() => {
-    if (!socket.connected) socket.connect()
+    removeAllPeers()
+    socket.connect()
+
+    const unload = () => socket.disconnect()
+    window.addEventListener('beforeunload', unload)
 
     return () => {
+      window.removeEventListener('beforeunload', unload)
+      removeAllPeers()
       socket.disconnect()
     }
   }, [])
 
   useEffect(() => {
-    function handleExistingPeers(list: string[]) {
-      setPeers(list)
+    const onExisting = (ids: string[]) => {
+      removeAllPeers()
+      setPeers(ids)
+      ids.forEach(id => createPeer(id, true))
     }
 
-    function handlePeerJoined(peerId: string) {
-      setPeers(prev => (prev.includes(peerId) ? prev : [...prev, peerId]))
-    }
-
-    function handlePeerLeft(peerId: string) {
-      setPeers(prev => prev.filter(p => p !== peerId))
-    }
-
-    function handleSocketExistingPeers(ids: string[]) {
-      handleExistingPeers(ids)
-
-      ids.forEach(id => {
-        if (!peers.includes(id)) createPeer(id, true)
-      })
-    }
-
-    function handleSocketPeerJoined(id: string) {
-      handlePeerJoined(id)
-
+    const onJoin = (id: string) => {
+      setPeers(p => (p.includes(id) ? p : [...p, id]))
       createPeer(id, false)
     }
 
-    function handleSocketSignal({
+    const onLeave = (id: string) => {
+      setPeers(p => p.filter(x => x !== id))
+      removePeer(id)
+    }
+
+    const onSignal = ({
       from,
       data,
     }: {
       from: string
       data: Peer.SignalData
-    }) {
-      signalPeer(from, data)
-    }
+    }) => signalPeer(from, data)
 
-    function handleSocketPeerLeft(peerId: string) {
-      handlePeerLeft(peerId)
-      removePeer(peerId)
-    }
-
-    socket.on('existing-peers', handleSocketExistingPeers)
-    socket.on('peer-joined', handleSocketPeerJoined)
-    socket.on('peer-left', handleSocketPeerLeft)
-    socket.on('signal', handleSocketSignal)
+    socket.on('existing-peers', onExisting)
+    socket.on('peer-joined', onJoin)
+    socket.on('peer-left', onLeave)
+    socket.on('signal', onSignal)
 
     return () => {
-      socket.off('existing-peers', handleSocketExistingPeers)
-      socket.off('peer-joined', handleSocketPeerJoined)
-      socket.off('peer-left', handleSocketPeerLeft)
-      socket.off('signal', handleSocketSignal)
+      socket.off('existing-peers', onExisting)
+      socket.off('peer-joined', onJoin)
+      socket.off('peer-left', onLeave)
+      socket.off('signal', onSignal)
     }
   }, [])
 
   useEffect(() => {
-    if (!id || !user) return
-
-    socket.emit('join-room', {
-      roomId: id,
-      nickname: user,
-    })
+    if (id && user) socket.emit('join-room', { roomId: id, nickname: user })
   }, [id, user])
+
+  function handleSend() {
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+
+    peers.forEach(id => sendFile(id, file))
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6">
@@ -112,6 +104,17 @@ export default function Room() {
             ))}
           </ul>
         )}
+      </div>
+
+      <div>
+        <h2>File Sharing</h2>
+        <input type="file" ref={fileRef} className="mt-2" />
+        <button
+          onClick={handleSend}
+          className="ml-2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 cursor-pointer"
+        >
+          Send
+        </button>
       </div>
     </div>
   )
