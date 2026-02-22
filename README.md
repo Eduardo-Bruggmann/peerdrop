@@ -6,8 +6,8 @@ It lets users connect directly in the browser and share files peer-to-peer using
 
 ## Project Structure
 
-- `apps/web` — Next.js frontend (user interface + WebRTC peer logic)
-- `apps/server` — Node.js + Express + Socket.IO signaling server
+- `frontend` — Next.js frontend (user interface + WebRTC peer logic)
+- `backend` — Node.js + Express + Socket.IO signaling server
 
 ## Tech Stack
 
@@ -21,7 +21,7 @@ It lets users connect directly in the browser and share files peer-to-peer using
 ### 1) Run the signaling server
 
 ```bash
-cd apps/server
+cd backend
 pnpm install
 pnpm dev
 ```
@@ -33,7 +33,7 @@ Server runs on `http://localhost:4000`.
 Open another terminal:
 
 ```bash
-cd apps/web
+cd frontend
 pnpm install
 pnpm dev
 ```

@@ -1,8 +1,8 @@
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import Main from '@/components/Main'
 import type { Metadata } from 'next'
 import './globals.css'
-import Header from '@/components/Header'
-import Main from '@/components/Main'
-import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: 'PeerDrop',
