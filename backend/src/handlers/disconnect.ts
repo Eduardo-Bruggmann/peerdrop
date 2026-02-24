@@ -1,11 +1,10 @@
-import { Socket } from 'socket.io'
+import { Server, Socket } from 'socket.io'
+import { scheduleDisconnect } from '../state/userMap'
 
-export function handleDisconnect(socket: Socket) {
+export function handleDisconnect(io: Server, socket: Socket) {
   return () => {
-    socket.rooms.forEach(roomId => {
-      if (roomId !== socket.id) {
-        socket.to(roomId).emit('peer-left', socket.id)
-      }
+    scheduleDisconnect(socket.id, (userId, roomId) => {
+      io.to(roomId).emit('peer-left', userId)
     })
   }
 }

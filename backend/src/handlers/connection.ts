@@ -1,13 +1,18 @@
 import { Server, Socket } from 'socket.io'
+import { registerUser, isUserInRoom, getUsersInRoom } from '../state/userMap'
 
 export function handleJoinRoom(io: Server, socket: Socket) {
-  return ({ roomId }: { roomId: string }) => {
+  return ({ roomId, userId }: { roomId: string; userId: string }) => {
+    const alreadyInRoom = isUserInRoom(userId, roomId)
+
+    registerUser(userId, socket.id, roomId)
     socket.join(roomId)
 
-    const peers = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
-    const otherPeers = peers.filter(id => id !== socket.id)
+    const otherUsers = getUsersInRoom(roomId, userId)
+    socket.emit('existing-peers', otherUsers)
 
-    socket.emit('existing-peers', otherPeers)
-    socket.to(roomId).emit('peer-joined', socket.id)
+    if (!alreadyInRoom) {
+      socket.to(roomId).emit('peer-joined', userId)
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { socketClient } from './client'
+import { socketClient, getUserId } from './client'
 import type Peer from 'simple-peer'
 
 export function setupSocketHandlers(
@@ -21,5 +21,5 @@ export function setupSocketHandlers(
 }
 
 export function joinRoom(roomId: string, nickname: string) {
-  socketClient.emit('join-room', { roomId, nickname })
+  socketClient.emit('join-room', { roomId, nickname, userId: getUserId() })
 }

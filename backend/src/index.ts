@@ -13,7 +13,7 @@ const { io, server } = setupSocket(app)
 io.on('connection', socket => {
   socket.on('join-room', handleJoinRoom(io, socket))
   socket.on('signal', handleSignal(io, socket))
-  socket.on('disconnect', handleDisconnect(socket))
+  socket.on('disconnect', handleDisconnect(io, socket))
 })
 
 const PORT = process.env.PORT || 4000
