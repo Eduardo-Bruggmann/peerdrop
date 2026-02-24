@@ -46,6 +46,10 @@ export function useRoom() {
         setPeers(p => p.filter(x => x !== id))
         removePeer(id)
       },
+      (id: string) => {
+        removePeer(id)
+        createPeer(id, false)
+      },
       ({ from, data }: { from: string; data: Peer.SignalData }) => {
         signalPeer(from, data)
       },

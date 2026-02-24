@@ -11,8 +11,7 @@ export function handleJoinRoom(io: Server, socket: Socket) {
     const otherUsers = getUsersInRoom(roomId, userId)
     socket.emit('existing-peers', otherUsers)
 
-    if (!alreadyInRoom) {
-      socket.to(roomId).emit('peer-joined', userId)
-    }
+    if (alreadyInRoom) socket.to(roomId).emit('peer-reconnected', userId)
+    else socket.to(roomId).emit('peer-joined', userId)
   }
 }

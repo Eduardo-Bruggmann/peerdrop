@@ -5,17 +5,20 @@ export function setupSocketHandlers(
   onExisting: (ids: string[]) => void,
   onJoin: (id: string) => void,
   onLeave: (id: string) => void,
+  onReconnect: (id: string) => void,
   onSignal: (data: { from: string; data: Peer.SignalData }) => void,
 ) {
   socketClient.on('existing-peers', onExisting)
   socketClient.on('peer-joined', onJoin)
   socketClient.on('peer-left', onLeave)
+  socketClient.on('peer-reconnected', onReconnect)
   socketClient.on('signal', onSignal)
 
   return () => {
     socketClient.off('existing-peers', onExisting)
     socketClient.off('peer-joined', onJoin)
     socketClient.off('peer-left', onLeave)
+    socketClient.off('peer-reconnected', onReconnect)
     socketClient.off('signal', onSignal)
   }
 }
