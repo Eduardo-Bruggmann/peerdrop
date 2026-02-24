@@ -1,5 +1,4 @@
 import { io } from 'socket.io-client'
-import { v4 as uuidv4 } from 'uuid'
 
 export const socketClient = io(
   process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000',
@@ -16,11 +15,15 @@ export function disconnectSocket() {
   socketClient.disconnect()
 }
 
+/**
+ * Returns a stable userId for this browser tab.
+ * Persists across page reloads (sessionStorage) but is unique per tab.
+ */
 export function getUserId(): string {
-  if (typeof window === 'undefined') return uuidv4()
+  if (typeof window === 'undefined') return crypto.randomUUID()
   const existing = sessionStorage.getItem('peerdrop-user-id')
   if (existing) return existing
-  const id = uuidv4()
+  const id = crypto.randomUUID()
   sessionStorage.setItem('peerdrop-user-id', id)
   return id
 }

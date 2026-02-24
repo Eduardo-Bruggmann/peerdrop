@@ -1,8 +1,12 @@
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { connectSocket, disconnectSocket } from '@/lib/socket/client'
+import {
+  socketClient,
+  connectSocket,
+  disconnectSocket,
+} from '@/lib/socket/client'
 import { setupSocketHandlers, joinRoom } from '@/lib/socket/handlers'
 import * as peerManager from '@/lib/webrtc/peerManager'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type Peer from 'simple-peer'
 
 const { removeAllPeers, createPeer, removePeer, signalPeer } = peerManager
@@ -12,6 +16,7 @@ export function useRoom() {
   const user = useSearchParams().get('user')
   const router = useRouter()
   const [peers, setPeers] = useState<string[]>([])
+  const joinedRef = useRef(false)
 
   useEffect(() => {
     if (!user?.trim()) router.push('/')
@@ -58,8 +63,28 @@ export function useRoom() {
     return cleanup
   }, [])
 
+  // Join room once the socket is connected, and re-join on reconnects
   useEffect(() => {
-    if (id && user) joinRoom(String(id), user)
+    if (!id || !user) return
+
+    const roomId = String(id)
+
+    const doJoin = () => {
+      joinRoom(roomId, user)
+      joinedRef.current = true
+    }
+
+    // If socket is already connected, join immediately
+    if (socketClient.connected) {
+      doJoin()
+    }
+
+    // (Re)join when socket (re)connects
+    socketClient.on('connect', doJoin)
+
+    return () => {
+      socketClient.off('connect', doJoin)
+    }
   }, [id, user])
 
   return { peers, roomId: id, user }
