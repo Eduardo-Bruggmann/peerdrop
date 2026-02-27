@@ -7,6 +7,14 @@ export const socketClient = io(
   },
 )
 
+socketClient.on('connect_error', error => {
+  console.error('Socket connection error:', error)
+})
+
+socketClient.on('error', error => {
+  console.error('Socket error:', error)
+})
+
 export function connectSocket() {
   if (!socketClient.connected) socketClient.connect()
 }

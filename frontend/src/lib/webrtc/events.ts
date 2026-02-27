@@ -37,7 +37,9 @@ export function setupPeerEvents(peer: Peer.Instance, peerId: string) {
         buffers = []
         return
       }
-    } catch {}
+    } catch (error) {
+      console.error('Failed to parse peer data:', error)
+    }
 
     buffers.push(new Uint8Array(raw as Uint8Array).buffer)
   })

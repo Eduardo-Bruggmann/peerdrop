@@ -27,5 +27,9 @@ export function sendFile(peerId: string, file: File) {
     }
   }
 
+  reader.onerror = error => {
+    console.error('Failed to read file chunk:', error)
+  }
+
   readChunk()
 }
