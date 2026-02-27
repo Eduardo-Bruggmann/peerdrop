@@ -23,10 +23,6 @@ export function disconnectSocket() {
   socketClient.disconnect()
 }
 
-/**
- * Returns a stable userId for this browser tab.
- * Persists across page reloads (sessionStorage) but is unique per tab.
- */
 export function getUserId(): string {
   if (typeof window === 'undefined') return crypto.randomUUID()
   const existing = sessionStorage.getItem('peerdrop-user-id')
