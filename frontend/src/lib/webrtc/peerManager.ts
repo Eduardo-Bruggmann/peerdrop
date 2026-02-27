@@ -4,43 +4,9 @@ import Peer from 'simple-peer'
 type PeerMap = Record<string, Peer.Instance>
 const peers: PeerMap = {}
 
-function parseUrls(value?: string) {
-  if (!value) return []
-  return value
-    .split(',')
-    .map(url => url.trim())
-    .filter(Boolean)
+const ICE_CONFIG = {
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 }
-
-function getIceConfig(): RTCConfiguration {
-  const stunUrls = parseUrls(process.env.NEXT_PUBLIC_STUN_URLS)
-  const turnUrls = parseUrls(process.env.NEXT_PUBLIC_TURN_URLS)
-
-  const iceServers: RTCIceServer[] = []
-
-  if (stunUrls.length) {
-    iceServers.push({ urls: stunUrls })
-  } else {
-    iceServers.push({ urls: 'stun:stun.l.google.com:19302' })
-  }
-
-  if (turnUrls.length) {
-    iceServers.push({
-      urls: turnUrls,
-      username: process.env.NEXT_PUBLIC_TURN_USERNAME,
-      credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL,
-    })
-  }
-
-  const forceRelay = process.env.NEXT_PUBLIC_WEBRTC_FORCE_RELAY === 'true'
-
-  return {
-    iceServers,
-    iceTransportPolicy: forceRelay ? 'relay' : 'all',
-  }
-}
-
-const ICE_CONFIG = getIceConfig()
 
 export function createPeer(peerId: string, initiator: boolean) {
   if (peers[peerId] && !peers[peerId].destroyed) {
