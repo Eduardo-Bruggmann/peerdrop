@@ -1,11 +1,15 @@
 import { getPeer } from './peerManager'
 
-const CHUNK_SIZE = 64 * 1024
+// 16 KB — safe for all mobile browsers / data channels
+const CHUNK_SIZE = 16 * 1024
+// Pause sending when buffered data exceeds this threshold
+const MAX_BUFFERED = 256 * 1024
 
 export function sendFile(peerId: string, file: File) {
   const peer = getPeer(peerId)
   if (!peer?.connected) return
 
+  // Send metadata as a plain string so the receiver can distinguish text vs binary
   peer.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size }))
 
   const reader = new FileReader()
@@ -16,15 +20,26 @@ export function sendFile(peerId: string, file: File) {
     reader.readAsArrayBuffer(chunk)
   }
 
+  const scheduleNext = () => {
+    if (offset >= file.size) {
+      peer.send(JSON.stringify({ type: 'done' }))
+      return
+    }
+
+    // Back-pressure: wait if the data channel buffer is full
+    const dc = (peer as any)._channel as RTCDataChannel | undefined
+    if (dc && dc.bufferedAmount > MAX_BUFFERED) {
+      setTimeout(scheduleNext, 50)
+      return
+    }
+
+    readChunk()
+  }
+
   reader.onload = () => {
     peer.send(reader.result as ArrayBuffer)
     offset += CHUNK_SIZE
-
-    if (offset < file.size) {
-      readChunk()
-    } else {
-      peer.send(JSON.stringify({ type: 'done' }))
-    }
+    scheduleNext()
   }
 
   reader.onerror = error => {
